@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平成あるある診断｜あなたの平成偏差値は？</title>
+<meta property="og:title" content="平成あるある診断｜あなたのランクは『チョベリグ』？">
+<meta property="og:description" content="難易度別・毎回ランダム出題。正解数×速さでランキング！結果は平成の言い回しでランクづけ。">
+<style>
+  :root{
+    --pink:#ff5fa2; --pink-d:#c0246b; --pink-l:#ffe3ef;
+    --cream:#fff7fb; --ink:#3a2433; --muted:#9b7689; --line:#ffd0e3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+    background:repeating-linear-gradient(135deg,#ffeaf3 0 22px,#ffe0ee 22px 44px);
+    color:var(--ink); min-height:100vh; padding:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .card{
+    width:100%; max-width:420px; background:var(--cream);
+    border:3px solid var(--pink); border-radius:24px;
+    box-shadow:6px 6px 0 var(--pink-d); overflow:hidden;
+  }
+  .head{background:var(--pink); color:#fff; padding:14px 18px; text-align:center; font-weight:bold; letter-spacing:.05em;}
+  .head small{display:block; font-weight:normal; font-size:11px; opacity:.9; margin-top:2px}
+  .body{padding:20px 18px}
+  .btn{display:block; width:100%; padding:13px 16px; margin:8px 0; background:#fff; border:2px solid var(--pink);
+    border-radius:14px; color:var(--ink); font-size:15px; font-weight:bold; cursor:pointer; text-align:left; transition:transform .08s;}
+  .btn:hover{background:var(--pink-l)} .btn:active{transform:scale(.98)}
+  .btn.correct{background:#c9f5dc; border-color:#27ae60; color:#11603a}
+  .btn.wrong{background:#ffd6d6; border-color:#e24b4a; color:#8a1f1f}
+  .btn-primary{background:var(--pink); color:#fff; text-align:center; border-color:var(--pink-d)}
+  .btn-primary:hover{background:var(--pink-d)}
+  .btn-ghost{background:#fff; text-align:center; border-color:var(--line); color:var(--pink-d); font-size:14px}
+  .diff{display:block; width:100%; padding:14px 16px; margin:10px 0; border-radius:16px; border:2px solid var(--pink);
+    background:#fff; cursor:pointer; text-align:left; transition:transform .08s}
+  .diff:hover{background:var(--pink-l)} .diff:active{transform:scale(.98)}
+  .diff b{font-size:17px; color:var(--pink-d)} .diff span{display:block; font-size:12px; color:var(--muted); margin-top:3px}
+  .kao{font-size:13px; color:var(--pink-d)}
+  .q-num{font-size:12px; color:var(--pink-d); font-weight:bold; margin-bottom:6px}
+  .q-text{font-size:17px; font-weight:bold; line-height:1.5; margin-bottom:14px}
+  .topbar{display:flex; justify-content:space-between; font-size:12px; color:var(--pink-d); font-weight:bold; margin-bottom:8px}
+  .bar{height:8px; background:var(--pink-l); border-radius:4px; overflow:hidden; margin-bottom:14px}
+  .bar>div{height:100%; background:var(--pink); width:0; transition:width .3s}
+  .explain{background:var(--pink-l); border-radius:12px; padding:12px; font-size:13px; line-height:1.6; margin-top:12px; display:none}
+  .explain.show{display:block}
+  .center{text-align:center}
+  .rank{font-size:38px; font-weight:bold; color:var(--pink-d); margin:6px 0; line-height:1.1}
+  .puri{background:#fff; border:3px dashed #ff7ab8; border-radius:16px; padding:14px 12px; position:relative; margin:8px 0 14px}
+  .puri .deco{position:absolute; line-height:1}
+  .puri-rank{font-size:36px; font-weight:bold; color:#ff4fa0; text-shadow:2px 2px 0 #ffd400; line-height:1.15; margin:2px 0}
+  .puri-cap{font-size:12px; color:#19b3c6; font-weight:bold}
+  .pill{display:inline-block; background:var(--pink); color:#fff; font-size:13px; font-weight:bold; padding:6px 16px; border-radius:20px; margin:4px 3px}
+  .pill.lite{background:#fff; color:var(--pink-d); border:1px solid var(--pink)}
+  .sub{font-size:13px; color:var(--muted); line-height:1.6}
+  .stat-row{display:flex; gap:8px; margin:14px 0}
+  .stat{flex:1; text-align:center; background:#fff; border:1px solid var(--line); border-radius:10px; padding:9px 4px}
+  .stat b{display:block; font-size:20px; color:var(--pink-d)} .stat span{font-size:11px; color:var(--muted)}
+  .rank-table{margin:14px 0; text-align:left}
+  .rank-row{display:flex; justify-content:space-between; padding:7px 12px; border-radius:8px; font-size:13px; margin:4px 0; background:#fff; border:1px solid var(--line)}
+  .rank-row.me{background:var(--pink-l); border-color:var(--pink); font-weight:bold}
+  .prof-card{border:2px solid var(--line); border-radius:14px; padding:12px; margin:10px 0; background:#fff}
+  .prof-card .dh{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px}
+  .prof-card .dh b{font-size:15px; color:var(--pink-d)} .prof-card .dh .r{font-size:18px; font-weight:bold; color:var(--ink)}
+  .prof-mini{display:flex; gap:6px; font-size:11px; color:var(--muted)}
+  .prof-mini div{flex:1; background:var(--pink-l); border-radius:7px; padding:5px; text-align:center}
+  .empty{font-size:12px; color:var(--muted); text-align:center; padding:6px}
+  .ashiato{margin-top:16px; padding-top:14px; border-top:2px dashed var(--line); text-align:left}
+  .lock{font-size:12px; color:var(--muted); background:#fff; border:1px dashed var(--line); border-radius:10px; padding:10px; margin-top:8px; text-align:center}
+  .credit{text-align:center; font-size:10px; color:var(--muted); margin-top:14px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="head">˗ˏˋ ★ 平成あるある診断 ★ ˎˊ˗<small>難易度別 ／ 正解数×速さでランキング</small></div>
+  <div class="body" id="app"></div>
+</div>
+
+<script>
+const N_PER_GAME = 10;
+const STORE_KEY = "heisei_quiz_best_v1";
+
+const POOLS = {
+  easy: {
+    label:"初級", kao:"(^o^)", desc:"だれでも分かる平成の常識",
+    qs:[
+      {q:"たまごっちが死んだら…？", a:["リセットして復活","電池を抜いて放置","新キャラが誕生"], c:0, e:"リセットボタンで最初から。お墓が出る切なさよ。"},
+      {q:"プリクラで撮影後にまずやることは？", a:["落書き(ラクガキ)","フィルター選択","AI加工"], c:0, e:"専用ペンでデコる。これがプリの本番。"},
+      {q:"「写ルンです」はなに？", a:["使い捨てカメラ","ビデオカメラ","インスタントカメラ"], c:0, e:"レンズ付きフィルム＝使い捨てカメラ。今また流行中。"},
+      {q:"ルーズソックスを留めるアレの名前は？", a:["ソックタッチ","ソックグルー","ピタソック"], c:0, e:"「ソックタッチ」。ずり落ち防止の必需品。"},
+      {q:"卒業式の超定番ソングは？", a:["旅立ちの日に","Lemon","ドライフラワー"], c:0, e:"「旅立ちの日に」。平成の卒業式の鉄板。"},
+      {q:"iモードを始めた会社は？", a:["NTTドコモ","au","ソフトバンク"], c:0, e:"1999年、ドコモのiモード。ケータイでネットの幕開け。"},
+      {q:"「アムラー」が真似してたのは？", a:["安室奈美恵","浜崎あゆみ","華原朋美"], c:0, e:"安室奈美恵。細眉・厚底・ミニスカが定番。"},
+      {q:"写メの語源になった会社は？", a:["J-PHONE","NTTドコモ","ツーカー"], c:0, e:"J-PHONEの「写メール」が語源。"},
+      {q:"顔文字「m(_ _)m」が表すのは？", a:["ごめんなさい／お辞儀","笑ってる","怒ってる"], c:0, e:"頭を下げてお辞儀。謝罪やお礼の定番。"},
+      {q:"顔文字「(^^ゞ」が表すのは？", a:["照れて頭をかく","泣いてる","びっくり"], c:0, e:"「ゞ」が頭をかく手。照れ笑いの定番。"},
+      {q:"たまごっちを作った会社は？", a:["バンダイ","セガ","タカラ"], c:0, e:"バンダイ。1996年発売、社会現象に。"},
+      {q:"「ナウい」の意味は？", a:["今っぽい／イケてる","眠い","かわいい"], c:0, e:"now+い。今風という意味。死語の代表格。"},
+      {q:"SMAPが歌った国民的大ヒット曲は？", a:["世界に一つだけの花","負けないで","TSUNAMI"], c:0, e:"2003年「世界に一つだけの花」。平成を代表する一曲。"},
+      {q:"「マツケンサンバ」で華麗に踊ったのは？", a:["松平健","松崎しげる","マツコ"], c:0, e:"2004年、松平健の「マツケンサンバⅡ」が大ブレイク。"},
+      {q:"携帯ゲーム機「ゲームボーイ」を作った会社は？", a:["任天堂","ソニー","セガ"], c:0, e:"任天堂。白黒画面で一世を風靡。"},
+      {q:"「プレイステーション」を発売した会社は？", a:["ソニー","任天堂","マイクロソフト"], c:0, e:"ソニー。1994年発売、ゲーム界を変えた。"},
+      {q:"「KY」の意味は？", a:["空気が読めない","急に休む","快晴"], c:0, e:"「空気(K)読めない(Y)」。平成後期の定番略語。"},
+      {q:"「3年B組金八先生」が教えていた教科は？", a:["国語","数学","英語"], c:0, e:"担当は国語。武田鉄矢の熱血教師。"},
+      {q:"アニメ・ゲームで国民的人気のポケモンの相棒は？", a:["ピカチュウ","ドラえもん","キティ"], c:0, e:"ピカチュウ。平成のキッズの憧れ。"},
+      {q:"2002年サッカーW杯を日本と共催した国は？", a:["韓国","中国","タイ"], c:0, e:"2002年、日韓共催のFIFAワールドカップ。"},
+      {q:"イチローが活躍するため海を渡った先は？", a:["アメリカ（大リーグ）","韓国","イタリア"], c:0, e:"2001年からメジャーリーグ・マリナーズで活躍。"},
+      {q:"「今でしょ！」で有名になった予備校講師は？", a:["林修","池上彰","金八先生"], c:0, e:"2013年の流行語大賞。"},
+      {q:"慎吾ママの朝のあいさつで流行した言葉は？", a:["おっはー","おはこんばんちは","ちゃお"], c:0, e:"2000年の流行語大賞「おっはー」。"},
+      {q:"「ワイルドだろぉ」のお笑い芸人は？", a:["スギちゃん","小島よしお","ヒロシ"], c:0, e:"2012年の流行語大賞。"},
+      {q:"テツandトモのネタといえば？", a:["なんでだろ〜","あると思います","ゲッツ"], c:0, e:"2003年に大ブレイク。"},
+      {q:"国民的RPG「ドラゴンクエスト」の通称は？", a:["ドラクエ","ドラゴン","クエスト"], c:0, e:"国民的ロールプレイングゲーム。"},
+      {q:"「スーパーマリオ」シリーズを作った会社は？", a:["任天堂","ソニー","セガ"], c:0, e:"任天堂の看板タイトル。"},
+      {q:"平成のカリスマ歌姫・浜崎あゆみの愛称は？", a:["あゆ","ヒッキー","アユミン"], c:0, e:"「あゆ」。平成ギャルの憧れ。"},
+      {q:"大ヒット曲「TSUNAMI」を歌った国民的バンドは？", a:["サザンオールスターズ","Mr.Children","B'z"], c:0, e:"2000年のミリオンヒット。"},
+      {q:"1998年に長野で開かれた国際大会は？", a:["冬季オリンピック","万博","サミット"], c:0, e:"1998年長野冬季五輪。"},
+      {q:"「だんご3兄弟」が大ヒットしたNHKの番組は？", a:["おかあさんといっしょ","紅白歌合戦","のど自慢"], c:0, e:"1999年に爆発的ヒット。"},
+      {q:"2018年「そだねー」で流行語大賞になったスポーツは？", a:["カーリング","スケート","卓球"], c:0, e:"女子カーリング「ロコ・ソラーレ」。"},
+      {q:"「アラフォー」が指す年齢は？", a:["40歳前後","20歳前後","60歳前後"], c:0, e:"around 40。2008年の流行語。"},
+      {q:"平成に栄えた日本最大級の匿名掲示板は？", a:["2ちゃんねる","Facebook","note"], c:0, e:"ネット文化の中心地だった。"},
+      {q:"初代「ポケットモンスター」を遊べた携帯ゲーム機は？", a:["ゲームボーイ","プレイステーション","セガサターン"], c:0, e:"初代ポケモンはゲームボーイ用。"},
+      {q:"アニメ「ドラゴンボール」の主人公は？", a:["孫悟空","ルフィ","ナルト"], c:0, e:"孫悟空。バトル漫画の金字塔。"},
+      {q:"ポケモンの主人公が目指したのは？", a:["ポケモンマスター","勇者","総理大臣"], c:0, e:"「ポケモンマスターになる！」"},
+      {q:"アニメ「クレヨンしんちゃん」の主人公の名字は？", a:["野原","桜田","磯野"], c:0, e:"野原しんのすけ。平成の人気アニメ。"},
+      {q:"大ヒットした純愛映画「世界の中心で、愛をさけぶ」の略称は？", a:["セカチュー","セカイ系","せかあい"], c:0, e:"2004年の社会現象「セカチュー」。"},
+      {q:"アニメ「美少女戦士セーラームーン」で月野うさぎが変身する姿は？", a:["セーラームーン","プリキュア","キューティーハニー"], c:0, e:"「月に代わっておしおきよ！」"}
+    ]
+  },
+  normal: {
+    label:"中級", kao:"(￣ー￣)b", desc:"平成を生きた30代ならイケる",
+    qs:[
+      {q:"mixiで相互フォローの友達をなんて呼んだ？", a:["マイミク","フレンド","ともだち"], c:0, e:"「マイミク（マイミクシィ）」。"},
+      {q:"自分のmixiページに付く“訪問の記録”は？", a:["足あと","いいね","リツイート"], c:0, e:"誰が来たか分かる「足あと」。本アプリの核ネタ。"},
+      {q:"前略プロフでよく回ってきたものは？", a:["バトン","スタンプ","いいね"], c:0, e:"「○○バトン」。指名されたら答えて次に回す。"},
+      {q:"プロフ帳に必ずあった欄は？", a:["好きな人","年収","マイナンバー"], c:0, e:"「好きな人」「マイブーム」。書くのに緊張した。"},
+      {q:"着メロを自分で入れる時の情報源は？", a:["着メロ専門の本・雑誌","公式アプリ","AIに依頼"], c:0, e:"楽譜番号が載った本を見ながら手入力。神業。"},
+      {q:"携帯の「赤外線」、何に使った？", a:["連絡先の交換","充電","写真印刷"], c:0, e:"端末をピッと近づけてアドレス交換。"},
+      {q:"音楽を持ち歩いた円盤型メディアは？", a:["MD","CD-R","SD"], c:0, e:"MD（ミニディスク）。曲名を手打ちで入れた。"},
+      {q:"テレホーダイの時間帯は？", a:["夜23時〜朝8時","夕方17時〜22時","土日終日"], c:0, e:"23時から定額。深夜にネットへ繰り出した。"},
+      {q:"「デコメ」とは？", a:["絵文字や画像で飾ったメール","動画メール","音声メール"], c:0, e:"デコメール。派手に装飾するのが流行。"},
+      {q:"顔文字「orz」が表すのは？", a:["挫折してうなだれる人","走る人","寝てる人"], c:0, e:"o=頭、r=腕と胴、z=膝。崩れ落ちる姿。"},
+      {q:"「着うたフル」の“フル”とは？", a:["1曲まるごと","フルカラー","フル充電"], c:0, e:"サビだけの着うた→1曲まるごとの着うたフル。"},
+      {q:"ニコニコ動画で画面に流れる文字は？", a:["コメント（弾幕）","字幕","広告"], c:0, e:"視聴者のコメントが流れる弾幕文化。"},
+      {q:"ドラマ「ロングバケーション」の主演男優は？", a:["木村拓哉","福山雅治","織田裕二"], c:0, e:"1996年、キムタク主演。月9の金字塔。"},
+      {q:"「踊る大捜査線」青島の名言「事件は会議室で起きてるんじゃない！」の続きは？", a:["現場で起きてるんだ","署内で起きてるんだ","頭で起きてるんだ"], c:0, e:"織田裕二の名セリフ。"},
+      {q:"宇多田ヒカルのデビュー曲は？", a:["Automatic","First Love","Flavor Of Life"], c:0, e:"1998年「Automatic」。15歳の衝撃デビュー。"},
+      {q:"1990年代後半のヨーヨーブームを生んだ商品名は？", a:["ハイパーヨーヨー","スーパーヨーヨー","メガヨーヨー"], c:0, e:"バンダイの「ハイパーヨーヨー」。技を競った。"},
+      {q:"1990年代後半のミニ四駆ブームを牽引した漫画は？", a:["爆走兄弟レッツ&ゴー!!","ダッシュ!四駆郎","ミニ四ファイター"], c:0, e:"「レッツ&ゴー!!」が第2次ブームの火付け役。"},
+      {q:"ギャグ「そんなの関係ねぇ！」の芸人は？", a:["小島よしお","波田陽区","ヒロシ"], c:0, e:"2007年、小島よしおの大ブレイクギャグ。"},
+      {q:"ギャグ「ゲッツ！」でおなじみの芸人は？", a:["ダンディ坂野","レイザーラモンHG","ムーディ勝山"], c:0, e:"黄色いスーツで「ゲッツ！」。"},
+      {q:"「電車男」の物語が生まれた掲示板は？", a:["2ちゃんねる","Yahoo!掲示板","mixi"], c:0, e:"2ちゃんねる発の純愛物語。"},
+      {q:"北島康介が2004年アテネ五輪で発した流行語は？", a:["チョー気持ちいい","神ってる","倍返し"], c:0, e:"競泳金メダル後の名言。"},
+      {q:"荒川静香のスケートの得意技で流行語になったのは？", a:["イナバウアー","トリプルアクセル","ビールマン"], c:0, e:"2006年トリノ五輪、金メダル。"},
+      {q:"ドラマ「GTO」の型破りな主人公の名は？", a:["鬼塚英吉","桜木建二","坂本金八"], c:0, e:"元暴走族の熱血教師。"},
+      {q:"「ごくせん」でヤンクミが教えていたのは？", a:["高校（の不良生徒）","小学校","幼稚園"], c:0, e:"任侠一家の娘が高校教師に。"},
+      {q:"顔を黒く日焼けさせたギャルの呼び名は？", a:["ガングロ","シロガリ","アゲ嬢"], c:0, e:"90年代後半のギャル文化。"},
+      {q:"厚底ブーツとともにギャルの聖地となった東京の街は？", a:["渋谷","秋葉原","巣鴨"], c:0, e:"渋谷109（マルキュー）が中心地。"},
+      {q:"安室奈美恵が結婚前後にヒットさせた小室哲哉プロデュースの名バラードは？", a:["CAN YOU CELEBRATE?","TSUNAMI","らいおんハート"], c:0, e:"1997年の大ヒット。"},
+      {q:"1990年代に大ブームになったコリコリ食感のデザートは？", a:["ナタデココ","タピオカ","パンナコッタ"], c:0, e:"1993年頃の大ブーム。"},
+      {q:"SMAPの名曲「夜空ノムコウ」を歌ったグループは？", a:["SMAP","TOKIO","V6"], c:0, e:"1998年の名曲。"},
+      {q:"格闘ゲーム「ストリートファイターII」で波動拳を撃つキャラは？", a:["リュウ","マリオ","ピカチュウ"], c:0, e:"「波動拳！」のかけ声。"},
+      {q:"たまごっちに続いて流行した育成携帯ゲーム「デジモン」の会社は？", a:["バンダイ","任天堂","セガ"], c:0, e:"デジタルモンスター。バンダイ発。"},
+      {q:"豪快なホームランで知られた巨人・松井秀喜の愛称は？", a:["ゴジラ","大魔神","怪物"], c:0, e:"「ゴジラ松井」。"},
+      {q:"恋愛番組「あいのり」で旅をした車「ラブワゴン」の色は？", a:["ピンク","白","黒"], c:0, e:"ピンクのワゴンで世界を旅した。"},
+      {q:"電子ペット「ファービー」がしゃべる言葉は？", a:["ファービー語","日本語のみ","英語のみ"], c:0, e:"1998年ブーム。ファービー語から日本語を覚える。"},
+      {q:"1995年に発生し「ボランティア元年」と呼ばれた大震災は？", a:["阪神・淡路大震災","東日本大震災","新潟県中越地震"], c:0, e:"1995年1月17日。"},
+      {q:"プレイステーション2が再生機としても普及した映像メディアは？", a:["DVD","ブルーレイ","レーザーディスク"], c:0, e:"PS2はDVDプレイヤーとしても大普及。"},
+      {q:"土曜夜の名物バラエティ「めちゃ²イケてるッ!」を放送した局は？", a:["フジテレビ","TBS","テレビ朝日"], c:0, e:"平成を代表するバラエティ。"},
+      {q:"「セガサターン」「プレステ」と競った1996年発売の任天堂の据置機は？", a:["ニンテンドウ64","ゲームキューブ","Wii"], c:0, e:"独特の3本足コントローラが特徴。"},
+      {q:"初代「ポケットモンスター」、赤と対になったソフトの色は？", a:["緑","青","金"], c:0, e:"日本では「赤・緑」が初代。"},
+      {q:"X JAPANやLUNA SEAなど、派手な衣装と化粧のバンドのジャンルは？", a:["ヴィジュアル系","パンク","フォーク"], c:0, e:"V系。平成のバンドブームを象徴。"}
+    ]
+  },
+  hard: {
+    label:"上級", kao:"щ(ﾟДﾟщ)", desc:"ガチ勢専用。ポケベル・2ちゃんも出る",
+    qs:[
+      {q:"ポケベルの「14106」、なんて読む？", a:["アイシテル","イイシゴト","イクヨ"], c:0, e:"1=I、4=し…で「愛してる」。語呂で会話した。"},
+      {q:"ポケベルの「0840」の意味は？", a:["おはよう","おやすみ","おつかれ"], c:0, e:"お(0)は(8)よ(4)う(0)。朝の定番メッセージ。"},
+      {q:"「MK5」の意味は？", a:["マジ切れ5秒前","毎日コーラ5本","マジ感動5秒"], c:0, e:"「マジ切れ5秒前」。ギャル語の金字塔。"},
+      {q:"「チョベリバ」の意味は？", a:["超ベリーバッド","ちょいベリベスト","チョコ＆リバー"], c:0, e:"最高はチョベリグ、最低がチョベリバ。"},
+      {q:"PHSの愛称といえば？", a:["ピッチ","ピロ","プチケー"], c:0, e:"「ピッチ」。料金が安くて学生の味方。"},
+      {q:"90年代「TK」と呼ばれた音楽プロデューサーは？", a:["小室哲哉","つんく","小林武史"], c:0, e:"小室哲哉。TKサウンドが時代を席巻。"},
+      {q:"「アウトオブ眼中」の意味は？", a:["眼中にない／興味なし","視力が悪い","目立つ"], c:0, e:"out of+眼中。対象外という意味。"},
+      {q:"MDの正式名称は？", a:["ミニディスク","メモリーディスク","マイクロディスク"], c:0, e:"MiniDisc。1992年ソニー発。"},
+      {q:"掲示板で「ぬるぽ」と書かれたら定番の返しは？", a:["ガッ","乙","おk"], c:0, e:"「ぬるぽ」→「ガッ」。2ちゃん名物の様式美。"},
+      {q:"顔文字「キタ━━(ﾟ∀ﾟ)━━!!」が表すのは？", a:["興奮・歓喜","怒り","悲しみ"], c:0, e:"待ち望んだものが来た歓喜。実況の定番。"},
+      {q:"「ベル友」とは？", a:["ポケベルで知り合った友達","ベルマーク仲間","学級委員"], c:0, e:"ポケベルでやりとりした友達のこと。"},
+      {q:"Jリーグが開幕したのは？", a:["1993年","1990年","1996年"], c:0, e:"1993年（平成5年）開幕。空前のサッカーブーム。"},
+      {q:"ドラマ「101回目のプロポーズ」の名セリフ「僕は死にません」を言ったのは？", a:["武田鉄矢","田村正和","三上博史"], c:0, e:"1991年、武田鉄矢の魂のセリフ。"},
+      {q:"「家なき子」安達祐実の決めゼリフは？", a:["同情するなら金をくれ","同情するなら愛をくれ","同情なんていらない"], c:0, e:"1994年、社会現象になった名ゼリフ。"},
+      {q:"トレンディドラマ「東京ラブストーリー」のヒロインの役名は？", a:["赤名リカ","南ちゃん","木村さん"], c:0, e:"1991年、鈴木保奈美演じる赤名リカ。「カンチ」が口癖。"},
+      {q:"お笑いギャグ「だっちゅーの」の女性コンビは？", a:["パイレーツ","クワバタオハラ","ノンスタイル"], c:0, e:"1998年、パイレーツの流行語。"},
+      {q:"ギャグ「欧米か！」のお笑いコンビは？", a:["タカアンドトシ","アンタッチャブル","おぎやはぎ"], c:0, e:"タカアンドトシのツッコミ定番。"},
+      {q:"GLAYの大ヒットバラードといえば？", a:["HOWEVER","名もなき詩","TSUNAMI"], c:0, e:"1997年「HOWEVER」。バンドブームの象徴。"},
+      {q:"バンダイが1999年に出したモノクロ携帯ゲーム機は？", a:["ワンダースワン","ネオジオポケット","ゲームギア"], c:0, e:"「ワンダースワン」。横井軍平氏が開発に関与。"},
+      {q:"1991年の流行語大賞「…じゃあ〜りませんか」のギャグの芸人は？", a:["チャーリー浜","間寛平","明石家さんま"], c:0, e:"吉本新喜劇のチャーリー浜。"},
+      {q:"2007年「どげんかせんといかん」と言った宮崎県知事は？", a:["東国原英夫","橋下徹","青島幸男"], c:0, e:"そのまんま東こと東国原英夫。"},
+      {q:"2016年の流行語「神ってる」を生んだプロ野球チームは？", a:["広島東洋カープ","阪神タイガース","読売ジャイアンツ"], c:0, e:"緒方監督・鈴木誠也の活躍から。"},
+      {q:"2002年に多摩川に現れ流行語になったアザラシの愛称は？", a:["タマちゃん","ウタちゃん","タマゴロウ"], c:0, e:"「タマちゃん」フィーバー。"},
+      {q:"ヴィジュアル系バンドX JAPANのリーダー（ドラム）は？", a:["YOSHIKI","hide","TOSHI"], c:0, e:"カリスマ的リーダーYOSHIKI。"},
+      {q:"ミリオン連発のビーイング系バンドZARDのボーカルは？", a:["坂井泉水","大黒摩季","相川七瀬"], c:0, e:"「負けないで」などで知られる坂井泉水。"},
+      {q:"1996年「自分で自分をほめたい」と言ったマラソン選手は？", a:["有森裕子","高橋尚子","野口みずき"], c:0, e:"アトランタ五輪、銅メダル後の名言。"},
+      {q:"ニンテンドウ64で初めて標準搭載されたコントローラの特徴は？", a:["アナログスティック","タッチパネル","振動だけ"], c:0, e:"3Dスティックで操作が一変。"},
+      {q:"初代プレイステーションのソフトの記録媒体は？", a:["CD-ROM","カセット","フロッピー"], c:0, e:"CD-ROM採用で大容量化。"},
+      {q:"「ドラゴンクエスト」を生んだ当時のゲーム会社は？", a:["エニックス","カプコン","ナムコ"], c:0, e:"後にスクウェアと合併しスクエニに。"},
+      {q:"プリント倶楽部（プリクラ）の第1号機を企画した会社は？", a:["アトラス","コナミ","タカラ"], c:0, e:"アトラスが企画、セガが共同で展開。"},
+      {q:"宇多田ヒカルの母である演歌歌手は？", a:["藤圭子","八代亜紀","小林幸子"], c:0, e:"「圭子の夢は夜ひらく」の藤圭子。"},
+      {q:"ドラマ「金田一少年の事件簿」初代主演を務めたのは？", a:["堂本剛","松本潤","二宮和也"], c:0, e:"1995年、堂本剛が主演。"},
+      {q:"朝ドラ「あまちゃん」の流行語「じぇじぇじぇ」の舞台となった県は？", a:["岩手県","青森県","秋田県"], c:0, e:"三陸（岩手県）が舞台。"},
+      {q:"野茂英雄が大リーグで武器にした投法の通称は？", a:["トルネード投法","ジャイロ投法","アンダースロー"], c:0, e:"ねじれる独特のフォーム。"},
+      {q:"バブル期に大流行したイタリア発祥のデザートは？", a:["ティラミス","マカロン","パンケーキ"], c:0, e:"1990年前後の定番デザート。"},
+      {q:"バンド「L'Arc〜en〜Ciel」の通称は？", a:["ラルク","エルアル","ラクル"], c:0, e:"フランス語で「虹」の意味。"},
+      {q:"イチローが「イチロー（効果）」で注目された1994年当時の所属球団は？", a:["オリックス・ブルーウェーブ","西武ライオンズ","中日ドラゴンズ"], c:0, e:"パ・リーグで210安打の記録。"},
+      {q:"1996年「メークドラマ」で逆転優勝した巨人の監督は？", a:["長嶋茂雄","王貞治","原辰徳"], c:0, e:"長嶋監督の名言から。"},
+      {q:"1995年に発売され社会現象になった、行列のできたパソコンOSは？", a:["Windows 95","Mac OS","MS-DOS"], c:0, e:"マイクロソフト製。深夜の発売に行列。"},
+      {q:"1999年の流行語大賞「雑草魂」を口にした巨人のルーキー投手は？", a:["上原浩治","桑田真澄","松坂大輔"], c:0, e:"新人で大活躍した上原浩治の言葉。"}
+    ]
+  }
+};
+const DIFF_ORDER = ["easy","normal","hard"];
+
+const RANKS = [
+  {r:0.9, name:"チョベリグ！", sub:"神レベルのガチ平成っ子。", lbl:"トップ層"},
+  {r:0.7, name:"イケてる",   sub:"なかなかナウい平成っ子。", lbl:"上位層"},
+  {r:0.5, name:"ビミョー",   sub:"平成、ほどほどに通過。", lbl:"平均ライン"},
+  {r:0.3, name:"アウトオブ眼中", sub:"平成…ちゃんと生きてた？", lbl:"うろ覚え"},
+  {r:0,   name:"平成ってなんすか？", sub:"完全に令和の子。", lbl:"これから学ぼう"}
+];
+
+const TYPES = {
+  gal:    {name:"渋谷系ギャル", kao:"(★ω★)", desc:"ノリと勢いで平成の主役！プリクラと厚底が相棒。", aru:"プリ機の前から動かない", aisho:"onii", pct:18},
+  onii:   {name:"お兄系・ギャル男", kao:"(￣^￣)ゞ", desc:"クラブとカラオケで朝まで。目立ってナンボ。", aru:"鏡を見る回数がやたら多い", aisho:"gal", pct:8},
+  vkei:   {name:"ヴィジュアル系", kao:"(〃▽〃)", desc:"黒衣装でライブに魂を捧げる。バンドが人生。", aru:"ライブのMCで泣く", aisho:"subcul", pct:12},
+  otaku:  {name:"アキバ系オタク", kao:"(´ε｀ )", desc:"アニメ・ゲーム・ネットが友。2ちゃんも巡回。", aru:"限定版は保存用と観賞用で2個買う", aisho:"idol", pct:16},
+  yankee: {name:"ヤンキー", kao:"( ｀ー´)", desc:"気合と仲間が全て。改造制服がトレードマーク。", aru:"先輩にはやたら礼儀正しい", aisho:"gal", pct:9},
+  majime: {name:"清楚な優等生", kao:"(*^^*)", desc:"まじめで愛されキャラ。図書室と委員会の主。", aru:"ノートが美しすぎて貸して人気", aisho:"otaku", pct:15},
+  subcul: {name:"サブカル下北系", kao:"(-ω-)", desc:"古着と邦楽にこだわる一匹狼。人と被るの嫌い。", aru:"メジャーになった途端に冷める", aisho:"vkei", pct:12},
+  idol:   {name:"アイドルオタ", kao:"\\(^o^)/", desc:"推しに全力。CDは複数買いが当たり前。", aru:"握手券のためにCDを箱買い", aisho:"otaku", pct:10}
+};
+const TYPE_ORDER = ["gal","onii","vkei","otaku","yankee","majime","subcul","idol"];
+const SHINDAN_Q = [
+  {q:"学校帰り、まず直行したのは？", opts:[
+    {t:"プリ機のあるゲーセン", p:{gal:2}},
+    {t:"タワレコ／HMVで試聴", p:{subcul:2}},
+    {t:"アニメイト／とらのあな", p:{otaku:2}},
+    {t:"マック／ミスドでだべる", p:{onii:2}},
+    {t:"塾／そろばん教室へ直行", p:{majime:2}}
+  ]},
+  {q:"ケータイで最初に設定したのは？", opts:[
+    {t:"好きなバンドの着メロ", p:{vkei:2}},
+    {t:"アニメキャラの待受", p:{otaku:2}},
+    {t:"推しの着うた", p:{idol:2}},
+    {t:"シンプルなデジタル時計の待受", p:{majime:2}},
+    {t:"彼女・彼氏とのツーショット待受", p:{onii:2}}
+  ]},
+  {q:"CD屋のレジに持っていったのは？", opts:[
+    {t:"安室・浜崎・小室系", p:{gal:2}},
+    {t:"X JAPAN・GLAY・ラルク", p:{vkei:2}},
+    {t:"モー娘。・ジャニーズのシングル", p:{idol:2}},
+    {t:"渋谷系・インディーズ", p:{subcul:2}},
+    {t:"氣志團・湘南乃風など", p:{yankee:2}}
+  ]},
+  {q:"お小遣いの主な使い道は？", opts:[
+    {t:"カラオケとクラブで朝まで", p:{onii:2}},
+    {t:"ライブ遠征と缶バッジ", p:{idol:2}},
+    {t:"ゲーセン・トレカ・フィギュア", p:{otaku:2}},
+    {t:"原付の改造パーツ", p:{yankee:2}},
+    {t:"参考書と文房具", p:{majime:2}}
+  ]},
+  {q:"制服の着こなしは？", opts:[
+    {t:"スカート短め＋ルーズソックス", p:{gal:2}},
+    {t:"改造制服・腰パン・短ラン", p:{yankee:2}},
+    {t:"校則どおりキッチリ", p:{majime:2}},
+    {t:"古着と混ぜて個性派に", p:{subcul:2}},
+    {t:"とにかく黒っぽくダークに", p:{vkei:2}}
+  ]},
+  {q:"休み時間の定番は？", opts:[
+    {t:"交換日記・プロフ帳をまわす", p:{majime:2}},
+    {t:"MD／ウォークマンで音楽に没頭", p:{subcul:2}},
+    {t:"ジャンプとゲームの攻略話", p:{otaku:2}},
+    {t:"鏡で前髪チェック＆ウワサ話", p:{onii:2}},
+    {t:"推しの雑誌の切り抜きを集める", p:{idol:2}}
+  ]},
+  {q:"ネットでハマってたのは？", opts:[
+    {t:"前略プロフ＆ギャル文字メール", p:{gal:2}},
+    {t:"バンドのファンサイト巡り", p:{vkei:2}},
+    {t:"2ちゃんねる実況", p:{otaku:2}},
+    {t:"推しの応援掲示板", p:{idol:2}},
+    {t:"個人サイト・テキストサイト巡り", p:{subcul:2}}
+  ]},
+  {q:"ファッションのお手本にした雑誌は？", opts:[
+    {t:"egg・Cawaii!（ギャル誌）", p:{gal:2}},
+    {t:"SHOXX・FOOL'S MATE（V系誌）", p:{vkei:2}},
+    {t:"裏原・ストリート系", p:{onii:2}},
+    {t:"チャンプロード（旧車・ヤンキー誌）", p:{yankee:2}},
+    {t:"non-no・SEVENTEENで清楚に", p:{majime:2}}
+  ]},
+  {q:"カラオケでマイクを握ったら？", opts:[
+    {t:"小室サウンドを熱唱", p:{gal:2}},
+    {t:"V系バラードをシャウト", p:{vkei:2}},
+    {t:"アニソン・声優ソング", p:{otaku:2}},
+    {t:"ジャニ・モー娘。で盛り上げ", p:{idol:2}},
+    {t:"みんな歌える王道J-POP", p:{majime:2}}
+  ]},
+  {q:"口ぐせに近いのは？", opts:[
+    {t:"チョベリグ！／MK5！", p:{gal:2}},
+    {t:"気合いだ気合い！（仲間命）", p:{yankee:2}},
+    {t:"〜キボンヌ／逝ってよし", p:{otaku:2}},
+    {t:"こだわりは譲れないんだよね", p:{subcul:2}},
+    {t:"○○は永遠！（推し語り）", p:{idol:2}}
+  ]}
+];
+
+const app = document.getElementById("app");
+let deck=[], cur=0, score=0, diffKey="normal", thinkMs=0, qStart=0;
+let sq=0, sscore={};
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function getRank(ratio){ return RANKS.find(x => ratio >= x.r); }
+function loadBest(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; } }
+function saveBest(o){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(o)); }catch(e){} }
+
+function calcScore(correct, secs){ return correct*1000 + Math.max(0, 2000 - Math.round(secs*8)); }
+function estPercentile(ratio, avgSec){
+  let top = ratio>=0.9?8 : ratio>=0.7?25 : ratio>=0.5?50 : ratio>=0.3?75 : 92;
+  if(avgSec < 6) top -= 6; else if(avgSec > 14) top += 6;
+  return Math.min(99, Math.max(1, Math.round(top)));
+}
+
+function renderStart(){
+  let h = `<div class="center"><div class="kao" style="font-size:22px;margin-bottom:6px">(^o^)／ ＼(^_^)</div>`;
+  h += `<div class="sub" style="margin-bottom:14px">好みで分かる「平成タイプ診断」か、知識で競う「クイズ」を選んでね</div></div>`;
+  h += `<button class="diff" id="toShindan" style="border-style:dashed"><b>平成タイプ診断 <span class="kao" style="display:inline">(★ω★)</span></b><span>好みに答えるだけ・知識いらず／あなたは何系？</span></button>`;
+  h += `<div class="sub center" style="margin:8px 0">― または クイズで腕試し ―</div>`;
+  DIFF_ORDER.forEach(k=>{
+    const p = POOLS[k];
+    h += `<button class="diff" data-k="${k}"><b>${p.label} <span class="kao" style="display:inline">${p.kao}</span></b><span>${p.desc}</span></button>`;
+  });
+  h += `<button class="btn btn-ghost" id="toProf"><i></i>マイ戦績（プロフ）を見る ▸</button>`;
+  app.innerHTML = h;
+  app.querySelectorAll(".diff[data-k]").forEach(b=> b.addEventListener("click", ()=> startGame(b.dataset.k)));
+  document.getElementById("toShindan").addEventListener("click", startShindan);
+  document.getElementById("toProf").addEventListener("click", renderProfile);
+}
+
+function startShindan(){ sq=0; sscore={}; TYPE_ORDER.forEach(k=>sscore[k]=0); renderShindanQ(); }
+function renderShindanQ(){
+  const item = SHINDAN_Q[sq];
+  const opts = shuffle(item.opts.slice());
+  const pct = Math.round((sq/SHINDAN_Q.length)*100);
+  let h = `<div class="topbar"><span>平成タイプ診断　${sq+1}/${SHINDAN_Q.length}</span><span class="kao">(★ω★)</span></div>`;
+  h += `<div class="bar"><div style="width:${pct}%"></div></div>`;
+  h += `<div class="q-text">${item.q}</div>`;
+  opts.forEach((o,i)=>{ h += `<button class="btn" data-i="${i}">${o.t}</button>`; });
+  app.innerHTML = h;
+  app.querySelectorAll(".btn").forEach(b=> b.addEventListener("click", ()=> answerShindan(opts[parseInt(b.dataset.i)])));
+}
+function answerShindan(opt){
+  for(const k in opt.p){ sscore[k] = (sscore[k]||0) + opt.p[k]; }
+  sq++;
+  sq < SHINDAN_Q.length ? renderShindanQ() : renderShindanResult();
+}
+function renderShindanResult(){
+  let top = TYPE_ORDER[0];
+  TYPE_ORDER.forEach(k=>{ if(sscore[k] > sscore[top]) top = k; });
+  const t = TYPES[top], ai = TYPES[t.aisho];
+  const best = loadBest(); best.shindan = {type:top, name:t.name, kao:t.kao}; saveBest(best);
+  let h = `<div class="puri center">`;
+  h += `<span class="deco" style="top:6px;left:8px">★</span><span class="deco" style="top:6px;right:8px">♥</span>`;
+  h += `<span class="deco" style="bottom:6px;left:10px;font-size:13px">✨</span><span class="deco" style="bottom:6px;right:10px;font-size:13px">✨</span>`;
+  h += `<div class="puri-cap">★ あなたの平成タイプ ★</div>`;
+  h += `<div style="font-size:30px;margin:2px 0" class="kao">${t.kao}</div>`;
+  h += `<div class="puri-rank" style="font-size:26px">${t.name}</div>`;
+  h += `<div class="sub" style="margin:4px 12px 0">${t.desc}</div>`;
+  h += `</div>`;
+  h += `<div class="center">`;
+  h += `<div style="background:var(--pink-l);border-radius:12px;padding:8px 12px;margin:0 0 8px;font-size:13px;color:var(--pink-d)">あるある：${t.aru}</div>`;
+  h += `<div><span class="pill">同じタイプは約${t.pct}%</span><span class="pill lite">相性◎ ${ai.name} ${ai.kao}</span></div>`;
+  h += `<div class="sub" style="margin-top:6px">※割合・相性はSTEP2で実データに接続</div>`;
+  h += `</div>`;
+  const shareText = `平成あるある診断、私の平成タイプは【${t.name}】でした！あなたは何系？`;
+  h += `<button class="btn btn-primary" id="share">結果をシェアする</button>`;
+  h += `<button class="btn" id="retry">もう一度診断する</button>`;
+  h += `<button class="btn btn-ghost" id="toQuiz">クイズで腕試しする ▸</button>`;
+  h += `<button class="btn btn-ghost" id="toProf">マイ戦績（プロフ）を見る ▸</button>`;
+  h += `<div class="credit">平成あるある診断 / prototype</div>`;
+  app.innerHTML = h;
+  document.getElementById("retry").addEventListener("click", startShindan);
+  document.getElementById("toQuiz").addEventListener("click", renderStart);
+  document.getElementById("toProf").addEventListener("click", renderProfile);
+  document.getElementById("share").addEventListener("click", ()=>{
+    if(navigator.share){ navigator.share({title:"平成あるある診断", text:shareText, url:location.href}); }
+    else { window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareText+"\n"+location.href), "_blank"); }
+  });
+}
+
+function startGame(k){
+  diffKey = k;
+  const pool = POOLS[k].qs.slice();
+  deck = shuffle(pool).slice(0, N_PER_GAME).map(o=>({ q:o.q, e:o.e, opts: shuffle(o.a.map((t,i)=>({t, ok:i===o.c}))) }));
+  cur=0; score=0; thinkMs=0;
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const item = deck[cur];
+  const pct = Math.round((cur/deck.length)*100);
+  let h = `<div class="topbar"><span>${POOLS[diffKey].label}　${cur+1}/${deck.length}</span><span>正解 ${score}</span></div>`;
+  h += `<div class="bar"><div style="width:${pct}%"></div></div>`;
+  h += `<div class="q-text">${item.q}</div>`;
+  item.opts.forEach((o,i)=>{ h += `<button class="btn" data-i="${i}">${o.t}</button>`; });
+  h += `<div class="explain" id="ex">${item.e}</div>`;
+  app.innerHTML = h;
+  app.querySelectorAll(".btn").forEach(b=> b.addEventListener("click", ()=> answer(parseInt(b.dataset.i))));
+  qStart = Date.now();
+}
+
+function answer(i){
+  thinkMs += Date.now() - qStart;
+  const item = deck[cur];
+  const btns = app.querySelectorAll(".btn");
+  btns.forEach((b,idx)=>{ b.disabled=true; if(item.opts[idx].ok) b.classList.add("correct"); else if(idx===i) b.classList.add("wrong"); });
+  if(item.opts[i].ok) score++;
+  document.getElementById("ex").classList.add("show");
+  const next = document.createElement("button");
+  next.className = "btn btn-primary";
+  next.textContent = cur < deck.length-1 ? "次の問題へ ▸" : "結果を見る ▸";
+  next.style.marginTop = "12px";
+  next.addEventListener("click", ()=>{ cur++; cur < deck.length ? renderQuestion() : renderResult(); });
+  app.appendChild(next);
+}
+
+function renderResult(){
+  const total = deck.length;
+  const ratio = score/total;
+  const secs = Math.round(thinkMs/1000);
+  const avgSec = thinkMs/1000/total;
+  const sc = calcScore(score, thinkMs/1000);
+  const pct = estPercentile(ratio, avgSec);
+  const rk = getRank(ratio);
+  const dlabel = POOLS[diffKey].label;
+
+  const best = loadBest();
+  const prev = best[diffKey];
+  const isNew = !prev || sc > prev.score;
+  if(isNew){ best[diffKey] = {rank:rk.name, correct:score, total, secs, score:sc, pct}; saveBest(best); }
+
+  let h = `<div class="puri center">`;
+  h += `<span class="deco" style="top:6px;left:8px">★</span><span class="deco" style="top:6px;right:8px">♥</span>`;
+  h += `<span class="deco" style="bottom:6px;left:10px;font-size:13px">✨</span><span class="deco" style="bottom:6px;right:10px;font-size:13px">✨</span>`;
+  h += `<div class="puri-cap">★ ${dlabel} のけっか ★</div>`;
+  h += `<div class="puri-rank">${rk.name}</div>`;
+  h += `<div class="sub">${rk.sub}</div>`;
+  h += `</div>`;
+  h += `<div class="stat-row">`;
+  h += `<div class="stat"><b>${score}/${total}</b><span>正解数</span></div>`;
+  h += `<div class="stat"><b>${secs}秒</b><span>回答時間</span></div>`;
+  h += `<div class="stat"><b>${sc.toLocaleString()}</b><span>スコア</span></div>`;
+  h += `</div>`;
+  h += `<div class="center"><span class="pill"><i class="ti ti-trophy"></i> 推定 上位 ${pct}%</span>`;
+  if(isNew) h += `<span class="pill lite">自己ベスト更新！</span>`;
+  h += `<div class="sub" style="margin-top:6px">※全体ランキングはSTEP2（サーバー接続）で本実装</div></div>`;
+  if(diffKey==="hard" && ratio>=0.7) h += `<div class="center sub" style="color:var(--pink-d)">上級でこのスコアは本物のガチ勢！</div>`;
+
+  h += `<div class="rank-table">`;
+  RANKS.forEach(x=>{ const me=x.name===rk.name?" me":""; h += `<div class="rank-row${me}"><span>${x.name}</span><span>${me?"◀ あなた":x.lbl}</span></div>`; });
+  h += `</div>`;
+
+  const shareText = `平成あるある診断【${dlabel}】私のランクは「${rk.name}」(正解${score}/${total}・${secs}秒・推定上位${pct}%)！あなたは何ランク？`;
+  h += `<button class="btn btn-primary" id="share">結果をシェアして友達と勝負</button>`;
+  h += `<button class="btn btn-ghost" id="toProf">マイ戦績（プロフ）を見る ▸</button>`;
+  h += `<button class="btn" id="retry">難易度を選び直す</button>`;
+  h += `<div class="credit">平成あるある診断 / prototype</div>`;
+  app.innerHTML = h;
+  document.getElementById("retry").addEventListener("click", renderStart);
+  document.getElementById("toProf").addEventListener("click", renderProfile);
+  document.getElementById("share").addEventListener("click", ()=>{
+    if(navigator.share){ navigator.share({title:"平成あるある診断", text:shareText, url:location.href}); }
+    else { window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareText+"\n"+location.href), "_blank"); }
+  });
+}
+
+function renderProfile(){
+  const best = loadBest();
+  const sh = best.shindan;
+  let h = `<div class="center"><div style="width:54px;height:54px;border-radius:50%;background:var(--pink-l);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;color:var(--pink-d);font-size:20px" class="kao">${sh?sh.kao:"(･ω･)"}</div>`;
+  h += `<div style="font-size:15px;font-weight:bold">あなたの平成プロフ</div>`;
+  if(sh){ h += `<div class="pill" style="margin:6px 0">平成タイプ：${sh.name}</div>`; }
+  else { h += `<div class="sub" style="margin:4px 0">平成タイプ診断は未挑戦</div>`; }
+  h += `<div class="sub" style="margin-bottom:6px">タイプ＋3難易度のランクと戦績</div></div>`;
+
+  DIFF_ORDER.forEach(k=>{
+    const p = POOLS[k]; const b = best[k];
+    h += `<div class="prof-card"><div class="dh"><b>${p.label} <span class="kao">${p.kao}</span></b>`;
+    h += b ? `<span class="r">${b.rank}</span>` : `<span class="r" style="color:var(--muted);font-size:14px">未挑戦</span>`;
+    h += `</div>`;
+    if(b){
+      h += `<div class="prof-mini"><div>正解 ${b.correct}/${b.total}</div><div>${b.secs}秒</div><div>${b.score.toLocaleString()}pt</div><div>上位${b.pct}%</div></div>`;
+    } else {
+      h += `<div class="empty">挑戦するとここにランクが並びます</div>`;
+    }
+    h += `</div>`;
+  });
+
+  h += `<div class="ashiato"><div class="q-num">(´｀)ﾉ 足あと・いいね（STEP2で実装予定）</div>`;
+  h += `<div class="lock">あなたのプロフを見に来た人の足あと／いいねがここに。<br>「全員見る」を“課金ポイント”にする予定。</div></div>`;
+  h += `<button class="btn btn-primary" id="back">クイズに挑戦してランクUP ▸</button>`;
+  h += `<div class="credit">平成あるある診断 / prototype</div>`;
+  app.innerHTML = h;
+  document.getElementById("back").addEventListener("click", renderStart);
+}
+
+renderStart();
+</script>
+</body>
+</html>
