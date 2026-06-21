@@ -51,6 +51,7 @@
   .q-num{font-size:12px; color:var(--pink-d); font-weight:bold; margin-bottom:6px}
   .q-text{font-size:17px; font-weight:bold; line-height:1.5; margin-bottom:14px}
   .topbar{display:flex; justify-content:space-between; font-size:12px; color:var(--pink-d); font-weight:bold; margin-bottom:8px}
+  .lcd{display:flex; justify-content:space-between; align-items:center; background:#aab85a; color:#2b2f1c; font-family:'Courier New',monospace; font-size:11px; padding:3px 9px; border-radius:6px; margin-bottom:8px; border:2px solid #3a3f28; letter-spacing:1px}
   .bar{height:8px; background:var(--pink-l); border-radius:4px; overflow:hidden; margin-bottom:14px}
   .bar>div{height:100%; background:var(--pink); width:0; transition:width .3s}
   .explain{background:var(--pink-l); border-radius:12px; padding:12px; font-size:13px; line-height:1.6; margin-top:12px; display:none}
@@ -78,6 +79,17 @@
   .empty{font-size:12px; color:var(--muted); text-align:center; padding:6px}
   .ashiato{margin-top:16px; padding-top:14px; border-top:2px dashed var(--line); text-align:left}
   .lock{font-size:12px; color:var(--muted); background:#fff; border:1px dashed var(--line); border-radius:10px; padding:10px; margin-top:8px; text-align:center}
+  .icons{display:grid; grid-template-columns:repeat(5,1fr); gap:10px 6px; margin:8px 0}
+  .ico-tile{display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer}
+  .ico-tile.locked{cursor:default}
+  .ico-c{width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px; position:relative; box-shadow:2px 2px 0 rgba(192,36,107,.18)}
+  .ico-tile.sel .ico-c{outline:3px solid var(--pink); outline-offset:2px}
+  .ico-tile.locked .ico-c{filter:grayscale(1); opacity:.5}
+  .ico-tile.rare .ico-c{box-shadow:0 0 10px rgba(255,206,58,.9)}
+  .ico-c .badge{position:absolute; top:-5px; right:-5px; width:18px; height:18px; background:var(--pink); color:#fff; border-radius:50%; font-size:11px; display:flex; align-items:center; justify-content:center}
+  .ico-c .lk{position:absolute; bottom:-3px; right:-3px; font-size:13px}
+  .ico-c .rt{position:absolute; top:-8px; left:50%; transform:translateX(-50%); font-size:8px; background:#ffce3a; color:#7a5200; padding:1px 6px; border-radius:8px; white-space:nowrap; font-weight:bold}
+  .ico-name{font-size:10px; color:var(--muted); line-height:1.1; text-align:center}
   .credit{text-align:center; font-size:10px; color:var(--muted); margin-top:14px}
 </style>
 </head>
@@ -322,6 +334,35 @@ const SHINDAN_Q = [
   ]}
 ];
 
+const ICONS = [
+  {ic:"🌸", name:"さくら", bg:"#ffd6e7", cond:null},
+  {ic:"⭐", name:"スター", bg:"#ffe9a8", cond:null},
+  {ic:"🎀", name:"リボン", bg:"#ffd0e3", cond:null},
+  {ic:"😎", name:"クール", bg:"#cfe6ff", cond:null},
+  {ic:"💄", name:"ギャル", bg:"#ffc4dd", cond:{shindan:true}, hint:"平成タイプ診断をやると開放"},
+  {ic:"🎮", name:"ゲーマー", bg:"#d8c8ff", cond:{plays:3}, hint:"クイズを3回プレイで開放"},
+  {ic:"📱", name:"ガラケー", bg:"#c7e6b0", cond:{diff:"normal", maxIdx:1}, hint:"中級でイケてる以上"},
+  {ic:"📼", name:"VHS", bg:"#d2d2d2", cond:{diff:"hard", maxIdx:2}, hint:"上級でビミョー以上"},
+  {ic:"💿", name:"MD", bg:"#d9e6ef", cond:{diff:"easy", maxIdx:0}, hint:"初級でチョベリグ！"},
+  {ic:"📟", name:"ポケベル", bg:"#2b2f3a", fg:"#ffd86b", rare:true, cond:{diff:"hard", maxIdx:0}, hint:"上級でチョベリグ！（レア）"},
+  {ic:"📺", name:"ブラウン管", bg:"#bcd0c0", cond:null},
+  {ic:"🎤", name:"カラオケ", bg:"#ffc9c9", cond:null},
+  {ic:"👾", name:"インベーダー", bg:"#cfe0a8", cond:{plays:5}, hint:"クイズを5回プレイで開放"},
+  {ic:"💾", name:"フロッピー", bg:"#c9d4e0", cond:{diff:"easy", maxIdx:1}, hint:"初級でイケてる以上"},
+  {ic:"🛵", name:"原付", bg:"#e0cdbf", cond:{diff:"normal", maxIdx:0}, hint:"中級でチョベリグ！"},
+  {ic:"👑", name:"平成王", bg:"#241f2e", fg:"#ffd86b", rare:true, cond:{allChobe:true}, hint:"全難易度でチョベリグ！（超レア）"}
+];
+function rankIdx(name){ return RANKS.findIndex(r=>r.name===name); }
+function isUnlocked(ico, best){
+  const c = ico.cond;
+  if(!c) return true;
+  if(c.shindan) return !!best.shindan;
+  if(c.plays) return (best.plays||0) >= c.plays;
+  if(c.allChobe) return ["easy","normal","hard"].every(d=> best[d] && rankIdx(best[d].rank)===0);
+  if(c.diff){ const b=best[c.diff]; if(!b) return false; const idx=rankIdx(b.rank); return idx>=0 && idx<=c.maxIdx; }
+  return false;
+}
+
 const app = document.getElementById("app");
 let deck=[], cur=0, score=0, diffKey="normal", thinkMs=0, qStart=0;
 let sq=0, sscore={};
@@ -359,7 +400,8 @@ function renderShindanQ(){
   const item = SHINDAN_Q[sq];
   const opts = shuffle(item.opts.slice());
   const pct = Math.round((sq/SHINDAN_Q.length)*100);
-  let h = `<div class="topbar"><span>平成タイプ診断　${sq+1}/${SHINDAN_Q.length}</span><span class="kao">(★ω★)</span></div>`;
+  let h = `<div class="lcd"><span>Tﾟﾟﾟ 圏内</span><span>診断モード</span><span>■■■□</span></div>`;
+  h += `<div class="topbar"><span>平成タイプ診断　${sq+1}/${SHINDAN_Q.length}</span><span class="kao">(★ω★)</span></div>`;
   h += `<div class="bar"><div style="width:${pct}%"></div></div>`;
   h += `<div class="q-text">${item.q}</div>`;
   opts.forEach((o,i)=>{ h += `<button class="btn" data-i="${i}">${o.t}</button>`; });
@@ -389,7 +431,7 @@ function renderShindanResult(){
   h += `<div><span class="pill">同じタイプは約${t.pct}%</span><span class="pill lite">相性◎ ${ai.name} ${ai.kao}</span></div>`;
   h += `<div class="sub" style="margin-top:6px">※割合・相性はSTEP2で実データに接続</div>`;
   h += `</div>`;
-  const shareText = `平成あるある診断、私の平成タイプは【${t.name}】でした！あなたは何系？`;
+  const shareText = `【平成タイプ診断】私は「${t.name}」${t.kao}\n${t.aru}\nあなたは何系？ #平成あるある #平成タイプ診断`;
   h += `<button class="btn btn-primary" id="share">結果をシェアする</button>`;
   h += `<button class="btn" id="retry">もう一度診断する</button>`;
   h += `<button class="btn btn-ghost" id="toQuiz">クイズで腕試しする ▸</button>`;
@@ -416,7 +458,8 @@ function startGame(k){
 function renderQuestion(){
   const item = deck[cur];
   const pct = Math.round((cur/deck.length)*100);
-  let h = `<div class="topbar"><span>${POOLS[diffKey].label}　${cur+1}/${deck.length}</span><span>正解 ${score}</span></div>`;
+  let h = `<div class="lcd"><span>Tﾟﾟﾟ 圏内</span><span>${POOLS[diffKey].label}</span><span>■■■□</span></div>`;
+  h += `<div class="topbar"><span>${POOLS[diffKey].label}　${cur+1}/${deck.length}</span><span>正解 ${score}</span></div>`;
   h += `<div class="bar"><div style="width:${pct}%"></div></div>`;
   h += `<div class="q-text">${item.q}</div>`;
   item.opts.forEach((o,i)=>{ h += `<button class="btn" data-i="${i}">${o.t}</button>`; });
@@ -454,7 +497,9 @@ function renderResult(){
   const best = loadBest();
   const prev = best[diffKey];
   const isNew = !prev || sc > prev.score;
-  if(isNew){ best[diffKey] = {rank:rk.name, correct:score, total, secs, score:sc, pct}; saveBest(best); }
+  if(isNew){ best[diffKey] = {rank:rk.name, correct:score, total, secs, score:sc, pct}; }
+  best.plays = (best.plays||0) + 1;
+  saveBest(best);
 
   let h = `<div class="puri center">`;
   h += `<span class="deco" style="top:6px;left:8px">★</span><span class="deco" style="top:6px;right:8px">♥</span>`;
@@ -477,13 +522,17 @@ function renderResult(){
   RANKS.forEach(x=>{ const me=x.name===rk.name?" me":""; h += `<div class="rank-row${me}"><span>${x.name}</span><span>${me?"◀ あなた":x.lbl}</span></div>`; });
   h += `</div>`;
 
-  const shareText = `平成あるある診断【${dlabel}】私のランクは「${rk.name}」(正解${score}/${total}・${secs}秒・推定上位${pct}%)！あなたは何ランク？`;
+  const shareText = `【平成あるある診断・${dlabel}】私のランクは「${rk.name}」！\n正解${score}/${total}・${secs}秒・推定上位${pct}%\nあなたは何ランク？ #平成あるある #平成偏差値`;
   h += `<button class="btn btn-primary" id="share">結果をシェアして友達と勝負</button>`;
+  h += `<button class="btn" id="again">▶ もう一回（${dlabel}）</button>`;
+  h += `<button class="btn" id="toShindan2">平成タイプ診断もやってみる ✨</button>`;
   h += `<button class="btn btn-ghost" id="toProf">マイ戦績（プロフ）を見る ▸</button>`;
-  h += `<button class="btn" id="retry">難易度を選び直す</button>`;
+  h += `<button class="btn btn-ghost" id="retry">難易度を選び直す</button>`;
   h += `<div class="credit">平成あるある診断 / prototype</div>`;
   app.innerHTML = h;
   document.getElementById("retry").addEventListener("click", renderStart);
+  document.getElementById("again").addEventListener("click", ()=>startGame(diffKey));
+  document.getElementById("toShindan2").addEventListener("click", startShindan);
   document.getElementById("toProf").addEventListener("click", renderProfile);
   document.getElementById("share").addEventListener("click", ()=>{
     if(navigator.share){ navigator.share({title:"平成あるある診断", text:shareText, url:location.href}); }
@@ -494,11 +543,33 @@ function renderResult(){
 function renderProfile(){
   const best = loadBest();
   const sh = best.shindan;
-  let h = `<div class="center"><div style="width:54px;height:54px;border-radius:50%;background:var(--pink-l);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;color:var(--pink-d);font-size:20px" class="kao">${sh?sh.kao:"(･ω･)"}</div>`;
+  const curIcon = best.icon || (sh?sh.kao:"(･ω･)");
+  const curIco = ICONS.find(i=>i.ic===best.icon);
+  const avBg = curIco ? curIco.bg : "var(--pink-l)";
+  const avFg = (curIco && curIco.fg) ? curIco.fg : "var(--pink-d)";
+  let h = `<div class="center"><div style="width:64px;height:64px;border-radius:50%;background:${avBg};display:flex;align-items:center;justify-content:center;margin:10px auto 8px;color:${avFg};font-size:30px;border:3px solid #fff;box-shadow:0 0 0 3px var(--pink),3px 3px 0 rgba(192,36,107,.3)" class="kao">${curIcon}</div>`;
   h += `<div style="font-size:15px;font-weight:bold">あなたの平成プロフ</div>`;
   if(sh){ h += `<div class="pill" style="margin:6px 0">平成タイプ：${sh.name}</div>`; }
   else { h += `<div class="sub" style="margin:4px 0">平成タイプ診断は未挑戦</div>`; }
-  h += `<div class="sub" style="margin-bottom:6px">タイプ＋3難易度のランクと戦績</div></div>`;
+  h += `</div>`;
+  const owned = ICONS.filter(i=>isUnlocked(i,best)).length;
+  h += `<div class="center"><div class="sub" style="margin:2px 0 0">アイコン図鑑　<b style="color:var(--pink-d)">${owned}</b>/${ICONS.length}</div></div>`;
+  h += `<div class="icons">`;
+  ICONS.forEach(ico=>{
+    const ok = isUnlocked(ico, best);
+    const sel = best.icon===ico.ic;
+    const cls = "ico-tile" + (ico.rare?" rare":"") + (ok?"":" locked") + (sel?" sel":"");
+    const attr = ok ? ` data-ic="${ico.ic}"` : "";
+    const title = ok ? ico.name : (ico.hint||"");
+    h += `<div class="${cls}"${attr} title="${title}">`;
+    h += `<div class="ico-c" style="background:${ico.bg};${ico.fg?'color:'+ico.fg:''}">${ico.ic}`;
+    if(sel) h += `<span class="badge">✓</span>`;
+    if(!ok) h += `<span class="lk">🔒</span>`;
+    if(ico.rare) h += `<span class="rt">レア</span>`;
+    h += `</div><div class="ico-name">${ok?ico.name:"？？？"}</div></div>`;
+  });
+  h += `</div>`;
+  h += `<div class="sub center" style="font-size:11px;margin-bottom:8px">？？？はクイズ・診断の条件達成でゲット（ホバー/長押しで条件）</div>`;
 
   DIFF_ORDER.forEach(k=>{
     const p = POOLS[k]; const b = best[k];
@@ -518,6 +589,9 @@ function renderProfile(){
   h += `<button class="btn btn-primary" id="back">クイズに挑戦してランクUP ▸</button>`;
   h += `<div class="credit">平成あるある診断 / prototype</div>`;
   app.innerHTML = h;
+  app.querySelectorAll(".ico-tile[data-ic]").forEach(b=> b.addEventListener("click", ()=>{
+    const bb = loadBest(); bb.icon = b.dataset.ic; saveBest(bb); renderProfile();
+  }));
   document.getElementById("back").addEventListener("click", renderStart);
 }
 
