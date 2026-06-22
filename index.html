@@ -99,6 +99,39 @@
   <div class="body" id="app"></div>
 </div>
 
+<!-- ▼ STEP2-1: Supabase（ログイン＋スコア保存＋全体ランキング）。鍵を貼ると自動で有効化 ▼ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ↓↓↓ Supabaseの Settings → API からコピーして貼り替えてください ↓↓↓
+  const SUPA_URL = "https://wwdxcrfqlvbojnyeevre.supabase.co";
+  const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3ZHhjcmZxbHZib2pueWVldnJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNTg3NDgsImV4cCI6MjA5NzYzNDc0OH0.THHXOxZR04qEv9xTcch2StK9SnSXlKyazYr3o4hhmfQ";  // anon public（公開OK・RLSで保護）
+  // ↑↑↑ 貼り替えるとクラウド保存＆本物の全体ランキングが有効になります ↑↑↑
+
+  const CLOUD_ON = SUPA_URL.indexOf("https://")===0 && SUPA_URL.indexOf("PASTE")===-1 && typeof supabase!=="undefined";
+  const sb = CLOUD_ON ? supabase.createClient(SUPA_URL, SUPA_KEY) : null;
+
+  // 起動時に匿名ログイン（既ログインならスキップ）。摩擦ゼロで保存できる。
+  async function ensureAuth(){
+    if(!sb) return null;
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ await sb.auth.signInAnonymously(); }
+    const { data:{ user } } = await sb.auth.getUser();
+    return user;
+  }
+
+  // クイズ結果をクラウド保存し、本物の順位を返す。未設定・失敗時は null（推定値にフォールバック）。
+  async function saveResultToCloud(difficulty, correct, total, timeSec, score){
+    if(!sb) return null;
+    try{
+      const user = await ensureAuth();
+      if(!user) return null;
+      await sb.from("quiz_results").insert({ user_id:user.id, difficulty, correct, total, time_sec:timeSec, score });
+      const { data } = await sb.rpc("get_rank", { p_user:user.id, p_difficulty:difficulty });
+      return (data && data[0]) || null; // { rank, total_players, top_percent }
+    }catch(e){ return null; }
+  }
+</script>
+
 <script>
 const N_PER_GAME = 10;
 const STORE_KEY = "heisei_quiz_best_v1";
@@ -513,9 +546,9 @@ function renderResult(){
   h += `<div class="stat"><b>${secs}秒</b><span>回答時間</span></div>`;
   h += `<div class="stat"><b>${sc.toLocaleString()}</b><span>スコア</span></div>`;
   h += `</div>`;
-  h += `<div class="center"><span class="pill"><i class="ti ti-trophy"></i> 推定 上位 ${pct}%</span>`;
+  h += `<div class="center"><span class="pill" id="rankPill"><i class="ti ti-trophy"></i> 推定 上位 ${pct}%</span>`;
   if(isNew) h += `<span class="pill lite">自己ベスト更新！</span>`;
-  h += `<div class="sub" style="margin-top:6px">※全体ランキングはSTEP2（サーバー接続）で本実装</div></div>`;
+  h += `<div class="sub" id="rankNote" style="margin-top:6px">${CLOUD_ON ? "全体ランキングを集計中…" : "※全体ランキングはSTEP2（サーバー接続）で本実装"}</div></div>`;
   if(diffKey==="hard" && ratio>=0.7) h += `<div class="center sub" style="color:var(--pink-d)">上級でこのスコアは本物のガチ勢！</div>`;
 
   h += `<div class="rank-table">`;
@@ -538,6 +571,20 @@ function renderResult(){
     if(navigator.share){ navigator.share({title:"平成あるある診断", text:shareText, url:location.href}); }
     else { window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareText+"\n"+location.href), "_blank"); }
   });
+
+  // クラウドが有効なら、推定%を「本物の全体ランキング」に置き換える
+  if(CLOUD_ON){
+    saveResultToCloud(diffKey, score, total, secs, sc).then(r=>{
+      const pill = document.getElementById("rankPill");
+      const note = document.getElementById("rankNote");
+      if(r && pill){
+        pill.innerHTML = `<i class="ti ti-trophy"></i> 全${r.total_players}人中 ${r.rank}位（上位${r.top_percent}%）`;
+        if(note) note.textContent = "リアルタイム全体ランキング";
+      } else if(note){
+        note.textContent = "※全体ランキングは接続待ち（推定値を表示中）";
+      }
+    });
+  }
 }
 
 function renderProfile(){
