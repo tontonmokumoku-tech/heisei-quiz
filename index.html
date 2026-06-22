@@ -131,6 +131,8 @@
     }catch(e){ return null; }
   }
 </script>
+<!-- 結果カードを画像化してシェア（拡散の摩擦をゼロに） -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <script>
 const N_PER_GAME = 10;
@@ -406,6 +408,30 @@ function loadBest(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || 
 function saveBest(o){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(o)); }catch(e){} }
 
 function calcScore(correct, secs){ return correct*1000 + Math.max(0, 2000 - Math.round(secs*8)); }
+
+// 結果カードを画像化してシェア（無理なら文章シェアにフォールバック）
+async function shareCard(captureId, shareText){
+  const el = document.getElementById(captureId);
+  if(!el || typeof html2canvas==="undefined"){ doTextShare(shareText); return; }
+  try{
+    const canvas = await html2canvas(el, { backgroundColor:"#ffe3ef", scale:2, useCORS:true });
+    canvas.toBlob(async (blob)=>{
+      if(!blob){ doTextShare(shareText); return; }
+      const file = new File([blob], "heisei-result.png", { type:"image/png" });
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        try{ await navigator.share({ files:[file], text:shareText }); return; }catch(e){ if(e && e.name==="AbortError") return; }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href=url; a.download="heisei-result.png"; a.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }catch(e){ doTextShare(shareText); }
+}
+function doTextShare(shareText){
+  if(navigator.share){ navigator.share({ title:"平成あるある診断", text:shareText, url:location.href }); }
+  else { window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareText+"\n"+location.href), "_blank"); }
+}
+function openLine(){ window.open("https://social-plugins.line.me/lineit/share?url="+encodeURIComponent(location.href), "_blank"); }
 function estPercentile(ratio, avgSec){
   let top = ratio>=0.9?8 : ratio>=0.7?25 : ratio>=0.5?50 : ratio>=0.3?75 : 92;
   if(avgSec < 6) top -= 6; else if(avgSec > 14) top += 6;
@@ -451,7 +477,7 @@ function renderShindanResult(){
   TYPE_ORDER.forEach(k=>{ if(sscore[k] > sscore[top]) top = k; });
   const t = TYPES[top], ai = TYPES[t.aisho];
   const best = loadBest(); best.shindan = {type:top, name:t.name, kao:t.kao}; saveBest(best);
-  let h = `<div class="puri center">`;
+  let h = `<div class="puri center" id="capCardS">`;
   h += `<span class="deco" style="top:6px;left:8px">★</span><span class="deco" style="top:6px;right:8px">♥</span>`;
   h += `<span class="deco" style="bottom:6px;left:10px;font-size:13px">✨</span><span class="deco" style="bottom:6px;right:10px;font-size:13px">✨</span>`;
   h += `<div class="puri-cap">★ あなたの平成タイプ ★</div>`;
@@ -465,7 +491,8 @@ function renderShindanResult(){
   h += `<div class="sub" style="margin-top:6px">※割合・相性はSTEP2で実データに接続</div>`;
   h += `</div>`;
   const shareText = `【平成タイプ診断】私は「${t.name}」${t.kao}\n${t.aru}\nあなたは何系？ #平成あるある #平成タイプ診断`;
-  h += `<button class="btn btn-primary" id="share">結果をシェアする</button>`;
+  h += `<button class="btn btn-primary" id="share">📸 結果を画像でシェア</button>`;
+  h += `<button class="btn" id="shareLine">LINEで友達に送る</button>`;
   h += `<button class="btn" id="retry">もう一度診断する</button>`;
   h += `<button class="btn btn-ghost" id="toQuiz">クイズで腕試しする ▸</button>`;
   h += `<button class="btn btn-ghost" id="toProf">マイ戦績（プロフ）を見る ▸</button>`;
@@ -474,10 +501,8 @@ function renderShindanResult(){
   document.getElementById("retry").addEventListener("click", startShindan);
   document.getElementById("toQuiz").addEventListener("click", renderStart);
   document.getElementById("toProf").addEventListener("click", renderProfile);
-  document.getElementById("share").addEventListener("click", ()=>{
-    if(navigator.share){ navigator.share({title:"平成あるある診断", text:shareText, url:location.href}); }
-    else { window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareText+"\n"+location.href), "_blank"); }
-  });
+  document.getElementById("share").addEventListener("click", ()=> shareCard("capCardS", shareText));
+  document.getElementById("shareLine").addEventListener("click", openLine);
 }
 
 function startGame(k){
@@ -534,7 +559,7 @@ function renderResult(){
   best.plays = (best.plays||0) + 1;
   saveBest(best);
 
-  let h = `<div class="puri center">`;
+  let h = `<div class="puri center" id="capCard">`;
   h += `<span class="deco" style="top:6px;left:8px">★</span><span class="deco" style="top:6px;right:8px">♥</span>`;
   h += `<span class="deco" style="bottom:6px;left:10px;font-size:13px">✨</span><span class="deco" style="bottom:6px;right:10px;font-size:13px">✨</span>`;
   h += `<div class="puri-cap">★ ${dlabel} のけっか ★</div>`;
@@ -556,7 +581,8 @@ function renderResult(){
   h += `</div>`;
 
   const shareText = `【平成あるある診断・${dlabel}】私のランクは「${rk.name}」！\n正解${score}/${total}・${secs}秒・推定上位${pct}%\nあなたは何ランク？ #平成あるある #平成偏差値`;
-  h += `<button class="btn btn-primary" id="share">結果をシェアして友達と勝負</button>`;
+  h += `<button class="btn btn-primary" id="share">📸 結果を画像でシェア</button>`;
+  h += `<button class="btn" id="shareLine">LINEで友達に送る</button>`;
   h += `<button class="btn" id="again">▶ もう一回（${dlabel}）</button>`;
   h += `<button class="btn" id="toShindan2">平成タイプ診断もやってみる ✨</button>`;
   h += `<button class="btn btn-ghost" id="toProf">マイ戦績（プロフ）を見る ▸</button>`;
@@ -567,10 +593,8 @@ function renderResult(){
   document.getElementById("again").addEventListener("click", ()=>startGame(diffKey));
   document.getElementById("toShindan2").addEventListener("click", startShindan);
   document.getElementById("toProf").addEventListener("click", renderProfile);
-  document.getElementById("share").addEventListener("click", ()=>{
-    if(navigator.share){ navigator.share({title:"平成あるある診断", text:shareText, url:location.href}); }
-    else { window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareText+"\n"+location.href), "_blank"); }
-  });
+  document.getElementById("share").addEventListener("click", ()=> shareCard("capCard", shareText));
+  document.getElementById("shareLine").addEventListener("click", openLine);
 
   // クラウドが有効なら、推定%を「本物の全体ランキング」に置き換える
   if(CLOUD_ON){
