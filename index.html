@@ -99,6 +99,19 @@
   <div class="body" id="app"></div>
 </div>
 
+<!-- ▼ GA4 アクセス解析。測定ID（G-…）を貼ると自動で有効化 ▼ -->
+<script>
+  const GA_ID = "G-PLG37N4S9K"; // GA4 測定ID
+  if(GA_ID.indexOf("G-")===0){
+    const s=document.createElement("script"); s.async=true;
+    s.src="https://www.googletagmanager.com/gtag/js?id="+GA_ID; document.head.appendChild(s);
+    window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments);};
+    gtag("js", new Date()); gtag("config", GA_ID);
+  }
+  // どこでも呼べる計測ヘルパー（未設定なら何もしない）
+  function track(name, params){ try{ if(window.gtag) gtag("event", name, params||{}); }catch(e){} }
+</script>
+
 <!-- ▼ STEP2-1: Supabase（ログイン＋スコア保存＋全体ランキング）。鍵を貼ると自動で有効化 ▼ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -385,6 +398,16 @@ const ICONS = [
   {ic:"👾", name:"インベーダー", bg:"#cfe0a8", cond:{plays:5}, hint:"クイズを5回プレイで開放"},
   {ic:"💾", name:"フロッピー", bg:"#c9d4e0", cond:{diff:"easy", maxIdx:1}, hint:"初級でイケてる以上"},
   {ic:"🛵", name:"原付", bg:"#e0cdbf", cond:{diff:"normal", maxIdx:0}, hint:"中級でチョベリグ！"},
+  {ic:"✌️", name:"ピース", bg:"#ffe0b0", cond:null},
+  {ic:"🌈", name:"レインボー", bg:"#d6f0ff", cond:null},
+  {ic:"💎", name:"キラキラ", bg:"#bdeefa", cond:null},
+  {ic:"🎧", name:"ヘッドホン", bg:"#d8c8ff", cond:{plays:7}, hint:"クイズを7回プレイで開放"},
+  {ic:"📸", name:"プリクラ", bg:"#ffd0e3", cond:{plays:10}, hint:"クイズを10回プレイで開放"},
+  {ic:"🪀", name:"ヨーヨー", bg:"#ffd6a8", cond:{diff:"normal", maxIdx:2}, hint:"中級でビミョー以上"},
+  {ic:"☎️", name:"公衆電話", bg:"#a9ddc9", cond:{diff:"easy", maxIdx:2}, hint:"初級でビミョー以上"},
+  {ic:"📻", name:"ラジカセ", bg:"#d9c3a8", cond:{diff:"hard", maxIdx:1}, hint:"上級でイケてる以上"},
+  {ic:"🧦", name:"ルーズソックス", bg:"#eef2f7", cond:{shindan:true}, hint:"平成タイプ診断で開放"},
+  {ic:"🐣", name:"たまごっち", bg:"#fff0c4", rare:true, cond:{plays:15}, hint:"クイズを15回プレイ（レア）"},
   {ic:"👑", name:"平成王", bg:"#241f2e", fg:"#ffd86b", rare:true, cond:{allChobe:true}, hint:"全難易度でチョベリグ！（超レア）"}
 ];
 function rankIdx(name){ return RANKS.findIndex(r=>r.name===name); }
@@ -403,6 +426,10 @@ let deck=[], cur=0, score=0, diffKey="normal", thinkMs=0, qStart=0;
 let sq=0, sscore={};
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+// 「同じ問題で対戦」用のシード付き乱数（同じseed＝同じ10問・同じ選択肢順）
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function seededShuffle(a, rng){ for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+let currentSeed = 0;
 function getRank(ratio){ return RANKS.find(x => ratio >= x.r); }
 function loadBest(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; } }
 function saveBest(o){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(o)); }catch(e){} }
@@ -411,6 +438,7 @@ function calcScore(correct, secs){ return correct*1000 + Math.max(0, 2000 - Math
 
 // 結果カードを画像化してシェア（無理なら文章シェアにフォールバック）
 async function shareCard(captureId, shareText){
+  track("share", {kind: captureId==="capCard" ? "quiz" : "shindan", method:"image"});
   const el = document.getElementById(captureId);
   if(!el || typeof html2canvas==="undefined"){ doTextShare(shareText); return; }
   try{
@@ -431,7 +459,18 @@ function doTextShare(shareText){
   if(navigator.share){ navigator.share({ title:"平成あるある診断", text:shareText, url:location.href }); }
   else { window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareText+"\n"+location.href), "_blank"); }
 }
-function openLine(){ window.open("https://social-plugins.line.me/lineit/share?url="+encodeURIComponent(location.href), "_blank"); }
+function openLine(){ track("share", {method:"line"}); window.open("https://social-plugins.line.me/lineit/share?url="+encodeURIComponent(location.href), "_blank"); }
+
+// 「同じ問題で対戦」リンク
+function getChallenge(){ try{ const p=new URLSearchParams(location.search); const s=p.get("seed"), d=p.get("d"); if(s!==null && POOLS[d] && !isNaN(parseInt(s,10))) return {seed:parseInt(s,10)>>>0, diff:d}; }catch(e){} return null; }
+function challengeURL(diff, seed){ return location.origin + location.pathname + "?seed=" + seed + "&d=" + diff; }
+function shareChallenge(diff, seed, score){
+  track("challenge_share", {difficulty:diff});
+  const url = challengeURL(diff, seed);
+  const text = `【平成あるある・挑戦状】\nオレのスコア ${score.toLocaleString()}、超えられる？\n同じ10問（${POOLS[diff].label}）で勝負だ！\n#平成あるある #平成偏差値`;
+  if(navigator.share){ navigator.share({title:"平成あるある 挑戦状", text:text, url:url}); }
+  else { window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(text+"\n"+url), "_blank"); }
+}
 function estPercentile(ratio, avgSec){
   let top = ratio>=0.9?8 : ratio>=0.7?25 : ratio>=0.5?50 : ratio>=0.3?75 : 92;
   if(avgSec < 6) top -= 6; else if(avgSec > 14) top += 6;
@@ -439,7 +478,14 @@ function estPercentile(ratio, avgSec){
 }
 
 function renderStart(){
-  let h = `<div class="center"><div class="kao" style="font-size:22px;margin-bottom:6px">(^o^)／ ＼(^_^)</div>`;
+  const ch = getChallenge();
+  let h = "";
+  if(ch){
+    h += `<div class="puri center" style="margin-bottom:12px"><div class="puri-cap">🔥 挑戦状が届いています 🔥</div>`;
+    h += `<div class="sub" style="margin:4px 12px">友達と<b>まったく同じ10問（${POOLS[ch.diff].label}）</b>で勝負！<br>スコアで勝てるか挑戦しよう</div>`;
+    h += `<button class="btn btn-primary" id="accept" style="margin:8px 12px 4px">同じ問題でスタート ▶</button></div>`;
+  }
+  h += `<div class="center"><div class="kao" style="font-size:22px;margin-bottom:6px">(^o^)／ ＼(^_^)</div>`;
   h += `<div class="sub" style="margin-bottom:14px">好みで分かる「平成タイプ診断」か、知識で競う「クイズ」を選んでね</div></div>`;
   h += `<button class="diff" id="toShindan" style="border-style:dashed"><b>平成タイプ診断 <span class="kao" style="display:inline">(★ω★)</span></b><span>好みに答えるだけ・知識いらず／あなたは何系？</span></button>`;
   h += `<div class="sub center" style="margin:8px 0">― または クイズで腕試し ―</div>`;
@@ -452,9 +498,10 @@ function renderStart(){
   app.querySelectorAll(".diff[data-k]").forEach(b=> b.addEventListener("click", ()=> startGame(b.dataset.k)));
   document.getElementById("toShindan").addEventListener("click", startShindan);
   document.getElementById("toProf").addEventListener("click", renderProfile);
+  if(ch){ document.getElementById("accept").addEventListener("click", ()=> startGame(ch.diff, ch.seed)); }
 }
 
-function startShindan(){ sq=0; sscore={}; TYPE_ORDER.forEach(k=>sscore[k]=0); renderShindanQ(); }
+function startShindan(){ track("shindan_start"); sq=0; sscore={}; TYPE_ORDER.forEach(k=>sscore[k]=0); renderShindanQ(); }
 function renderShindanQ(){
   const item = SHINDAN_Q[sq];
   const opts = shuffle(item.opts.slice());
@@ -477,6 +524,7 @@ function renderShindanResult(){
   TYPE_ORDER.forEach(k=>{ if(sscore[k] > sscore[top]) top = k; });
   const t = TYPES[top], ai = TYPES[t.aisho];
   const best = loadBest(); best.shindan = {type:top, name:t.name, kao:t.kao}; saveBest(best);
+  track("shindan_complete", {type:top, name:t.name});
   let h = `<div class="puri center" id="capCardS">`;
   h += `<span class="deco" style="top:6px;left:8px">★</span><span class="deco" style="top:6px;right:8px">♥</span>`;
   h += `<span class="deco" style="bottom:6px;left:10px;font-size:13px">✨</span><span class="deco" style="bottom:6px;right:10px;font-size:13px">✨</span>`;
@@ -505,10 +553,14 @@ function renderShindanResult(){
   document.getElementById("shareLine").addEventListener("click", openLine);
 }
 
-function startGame(k){
+function startGame(k, seed){
   diffKey = k;
+  // seedがあれば同じ問題（対戦）。なければ新しいseedを発行して、この対局を共有可能にする
+  currentSeed = (seed!=null && !isNaN(seed)) ? (seed>>>0) : (Math.floor(Math.random()*1e9));
+  track("quiz_start", {difficulty:k, challenge: seed!=null});
+  const rng = mulberry32(currentSeed);
   const pool = POOLS[k].qs.slice();
-  deck = shuffle(pool).slice(0, N_PER_GAME).map(o=>({ q:o.q, e:o.e, opts: shuffle(o.a.map((t,i)=>({t, ok:i===o.c}))) }));
+  deck = seededShuffle(pool, rng).slice(0, N_PER_GAME).map(o=>({ q:o.q, e:o.e, opts: seededShuffle(o.a.map((t,i)=>({t, ok:i===o.c})), rng) }));
   cur=0; score=0; thinkMs=0;
   renderQuestion();
 }
@@ -558,6 +610,7 @@ function renderResult(){
   if(isNew){ best[diffKey] = {rank:rk.name, correct:score, total, secs, score:sc, pct}; }
   best.plays = (best.plays||0) + 1;
   saveBest(best);
+  track("quiz_complete", {difficulty:diffKey, correct:score, total:total, rank:rk.name});
 
   let h = `<div class="puri center" id="capCard">`;
   h += `<span class="deco" style="top:6px;left:8px">★</span><span class="deco" style="top:6px;right:8px">♥</span>`;
@@ -582,6 +635,7 @@ function renderResult(){
 
   const shareText = `【平成あるある診断・${dlabel}】私のランクは「${rk.name}」！\n正解${score}/${total}・${secs}秒・推定上位${pct}%\nあなたは何ランク？ #平成あるある #平成偏差値`;
   h += `<button class="btn btn-primary" id="share">📸 結果を画像でシェア</button>`;
+  h += `<button class="btn" id="challenge">🔥 友達に挑戦状（同じ問題で勝負）</button>`;
   h += `<button class="btn" id="shareLine">LINEで友達に送る</button>`;
   h += `<button class="btn" id="again">▶ もう一回（${dlabel}）</button>`;
   h += `<button class="btn" id="toShindan2">平成タイプ診断もやってみる ✨</button>`;
@@ -595,6 +649,7 @@ function renderResult(){
   document.getElementById("toProf").addEventListener("click", renderProfile);
   document.getElementById("share").addEventListener("click", ()=> shareCard("capCard", shareText));
   document.getElementById("shareLine").addEventListener("click", openLine);
+  document.getElementById("challenge").addEventListener("click", ()=> shareChallenge(diffKey, currentSeed, sc));
 
   // クラウドが有効なら、推定%を「本物の全体ランキング」に置き換える
   if(CLOUD_ON){
@@ -614,8 +669,8 @@ function renderResult(){
 function renderProfile(){
   const best = loadBest();
   const sh = best.shindan;
-  const curIcon = best.icon || (sh?sh.kao:"(･ω･)");
-  const curIco = ICONS.find(i=>i.ic===best.icon);
+  const curIcon = best.icon || "🌸";
+  const curIco = ICONS.find(i=>i.ic===curIcon);
   const avBg = curIco ? curIco.bg : "var(--pink-l)";
   const avFg = (curIco && curIco.fg) ? curIco.fg : "var(--pink-d)";
   let h = `<div class="center"><div style="width:64px;height:64px;border-radius:50%;background:${avBg};display:flex;align-items:center;justify-content:center;margin:10px auto 8px;color:${avFg};font-size:30px;border:3px solid #fff;box-shadow:0 0 0 3px var(--pink),3px 3px 0 rgba(192,36,107,.3)" class="kao">${curIcon}</div>`;
